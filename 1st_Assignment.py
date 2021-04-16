@@ -42,11 +42,11 @@ def subtreeOfDependents(sentence, output=True):
                     print('\t -> {}: {}'.format(els.text, els.dep_))
         if output:
             print('End subtree\n')
-        subtrees[token] = subtreeEls
+        subtrees[token.text] = subtreeEls
     return subtrees
 
 
-'''def isSubtree(listOfTokens, refSentence):
+def isSubtree(listOfTokens, refSentence):
     # Suppose to have an ordered list of token: root -> dep 1 -> dep 2 -> ...
 
     subtrees = subtreeOfDependents(refSentence, False)
@@ -60,11 +60,10 @@ def subtreeOfDependents(sentence, output=True):
         tempTokens = nlp(tempSentence)
         listOfTokens = tempTokens
 
-
     if listOfTokens[0].text in list(subtrees.keys()):
         index = 1  # Next token after subtree root
-        for el in subtrees[listOfTokens[0]]:
-            if el != listOfTokens[index]:  # Sure to not have duplicate of root
+        for el in subtrees[listOfTokens[0].text]:
+            if el.text != listOfTokens[index].text:
                 print('subtree does not fit: {} != {}'
                       .format(el, listOfTokens[index]))
                 return False  # Subtree differs by input one
@@ -73,11 +72,10 @@ def subtreeOfDependents(sentence, output=True):
     else:
         print('No subtree starting with \'{}\''.format(listOfTokens[0].text))
         return False  # No subtree with first element as root
-'''
+
 
 if __name__ == '__main__':
     sentence = 'He is the king with the rotten crown'
     # paths = rootToTokenPath(sentence)  # Tested
     # subtrees = subtreeOfDependents(sentence)  #Tested
-
-    # print(isSubtree(['crown', 'the', 'rotten'], sentence))
+    # print(isSubtree(['crown', 'the', 'rotten'], sentence))  # Tested
