@@ -74,8 +74,30 @@ def isSubtree(listOfTokens, refSentence):
         return False  # No subtree with first element as root
 
 
+def headOfSpan(listOfTokens):
+
+    nlp = spacy.load('en_core_web_sm')
+    if not isinstance(listOfTokens[0], str):  # List of spacy.tokens items
+        wordsList = []
+        for token in listOfTokens:
+            wordsList.append(token.text)
+        listOfTokens = wordsList
+
+    sentence = listOfTokens[0]
+    if len(listOfTokens) > 1:
+        for el in listOfTokens[1:]:
+            sentence += ' {}'.format(el)
+
+    doc = nlp(sentence)
+    span = doc[:]
+    print('Head of: {} is \'{}\''.format(listOfTokens, span.root.text))
+
+    return span.root
+
+
 if __name__ == '__main__':
     sentence = 'He is the king with the rotten crown'
     # paths = rootToTokenPath(sentence)  # Tested
     # subtrees = subtreeOfDependents(sentence)  #Tested
     # print(isSubtree(['crown', 'the', 'rotten'], sentence))  # Tested
+    headOfSpan(sentence.split(' '))
