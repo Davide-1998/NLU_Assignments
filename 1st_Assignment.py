@@ -5,8 +5,10 @@ def rootToTokenPath(sentence):
     # Finds and prints dependency path from Root to specified token
 
     nlp = spacy.load('en_core_web_sm')  # Create language loading a pipline
-    doc = nlp(sentence)  # Create doc object by feeding the input
-                         # Sentence to the previous defined pipeline
+    # Create doc object by feeding the input sentence to the pipeline
+    doc = nlp(sentence)
+
+    listOfDependenciesPath = []
 
     for token in doc:
         listOfDependencies = []
@@ -19,6 +21,63 @@ def rootToTokenPath(sentence):
             print(' -[{}]-> {}'.format(el[1], el[0]), end='')
         print('\n')
 
+        listOfDependenciesPath.append(listOfDependencies)
+    return listOfDependenciesPath
+
+
+def subtreeOfDependents(sentence, output=True):
+    nlp = spacy.load('en_core_web_sm')
+    doc = nlp(sentence)
+
+    subtrees = {}
+
+    for token in doc:
+        if output:
+            print('{}:'.format(token.text))
+        subtreeEls = []
+        for els in token.subtree:
+            if els != token:  # Avoid re-print the token under analysis
+                subtreeEls.append(els)
+                if output:
+                    print('\t -> {}: {}'.format(els.text, els.dep_))
+        if output:
+            print('End subtree\n')
+        subtrees[token] = subtreeEls
+    return subtrees
+
+
+'''def isSubtree(listOfTokens, refSentence):
+    # Suppose to have an ordered list of token: root -> dep 1 -> dep 2 -> ...
+
+    subtrees = subtreeOfDependents(refSentence, False)
+
+    if isinstance(listOfTokens[0], str):
+        tempSentence = listOfTokens[0]
+        if len(listOfTokens) > 1:
+            for el in listOfTokens[1:]:
+                tempSentence += ' {}'.format(el)
+        nlp = spacy.load('en_core_web_sm')
+        tempTokens = nlp(tempSentence)
+        listOfTokens = tempTokens
+
+
+    if listOfTokens[0].text in list(subtrees.keys()):
+        index = 1  # Next token after subtree root
+        for el in subtrees[listOfTokens[0]]:
+            if el != listOfTokens[index]:  # Sure to not have duplicate of root
+                print('subtree does not fit: {} != {}'
+                      .format(el, listOfTokens[index]))
+                return False  # Subtree differs by input one
+            index += 1
+        return True
+    else:
+        print('No subtree starting with \'{}\''.format(listOfTokens[0].text))
+        return False  # No subtree with first element as root
+'''
 
 if __name__ == '__main__':
-    rootToTokenPath('He is the king with the rotten crown')
+    sentence = 'He is the king with the rotten crown'
+    # paths = rootToTokenPath(sentence)  # Tested
+    # subtrees = subtreeOfDependents(sentence)  #Tested
+
+    # print(isSubtree(['crown', 'the', 'rotten'], sentence))
