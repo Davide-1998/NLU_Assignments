@@ -14,12 +14,12 @@ def rootToTokenPath(sentence):
     for token in doc:
         listOfDependencies = []
         while token.dep_ != 'ROOT':
-            listOfDependencies.insert(0, (token.text, token.dep_))
+            listOfDependencies.insert(0, token)
             token = token.head
-        listOfDependencies.insert(0, (token.text, token.dep_))
+        listOfDependencies.insert(0, token)
 
         for el in listOfDependencies:
-            print(' -[{}]-> {}'.format(el[1], el[0]), end='')
+            print(' -[{}]-> {}'.format(el.dep_, el.text), end='')
         print('\n')
 
         listOfDependenciesPath.append(listOfDependencies)
@@ -131,7 +131,8 @@ def objectsExtractor(sentence):
 
 
 if __name__ == '__main__':
-    # sentence = 'I saw the man with a telescope'
+    sentence = 'I saw the man with a telescope'
+    print(sentence)
     # paths = rootToTokenPath(sentence)  # Tested
     # subtrees = subtreeOfDependents(sentence)  # Tested
     # print(isSubtree(['with', 'a', 'telescope'], sentence))  # Tested
