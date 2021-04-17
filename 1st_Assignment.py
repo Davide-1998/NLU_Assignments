@@ -64,7 +64,6 @@ def isSubtree(listOfTokens, refSentence):
 
     if listOfTokens[0].text in list(subtrees.keys()):
         index = 1  # Next token after subtree root
-        print(subtrees[listOfTokens[0].text])
         for el in subtrees[listOfTokens[0].text][1:]:
             if el.text != listOfTokens[index].text:
                 print('subtree does not fit: \'{}\' != \'{}\''
@@ -102,20 +101,6 @@ def objectsExtractor(sentence):
     depToFind = ['nsubj', 'dobj', 'iobj']
 
     nlp = spacy.load('en_core_web_sm')
-    '''matcher = Matcher(nlp.vocab)
-
-    matcherPatterns = [[{'DEP': 'nsubj'}],
-                       [{'DEP': 'dobj'}],
-                       [{'DEP': 'iobj'}]]
-    matcher.add('RuleDep', matcherPatterns)
-
-    doc = nlp(sentence)
-    matches = matcher(doc)
-    print('Matches Found: {}'.format(len(matches)))
-    if len(matches) > 0:
-        for hashVal, start, end in matches:
-            span = doc[start:end]
-            print('Found -> \'{}\''.format(span.text))'''
 
     doc = nlp(sentence)
     dictOfMatches = {}
@@ -123,7 +108,7 @@ def objectsExtractor(sentence):
         dictOfMatches[el] = []
     for token in doc:
         if token.dep_ in depToFind:
-            tempList = [token]
+            tempList = []
             for el in token.subtree:
                 tempList.append(el)
             dictOfMatches[token.dep_].append(tempList)
@@ -137,4 +122,4 @@ if __name__ == '__main__':
     # subtrees = subtreeOfDependents(sentence)  # Tested
     # print(isSubtree(['with', 'a', 'telescope'], sentence))  # Tested
     # headOfSpan(sentence.split(' '))  # Tested
-    # print(objectsExtractor(sentence)) # Tested
+    # print(objectsExtractor('I saw the man'))  # Tested
