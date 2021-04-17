@@ -1,4 +1,5 @@
 import spacy
+from spacy.matcher import Matcher
 
 
 def rootToTokenPath(sentence):
@@ -97,9 +98,42 @@ def headOfSpan(listOfTokens):
     return span.root
 
 
+def objectsExtractor(sentence):
+    depToFind = ['nsubj', 'dobj', 'iobj']
+
+    nlp = spacy.load('en_core_web_sm')
+    '''matcher = Matcher(nlp.vocab)
+
+    matcherPatterns = [[{'DEP': 'nsubj'}],
+                       [{'DEP': 'dobj'}],
+                       [{'DEP': 'iobj'}]]
+    matcher.add('RuleDep', matcherPatterns)
+
+    doc = nlp(sentence)
+    matches = matcher(doc)
+    print('Matches Found: {}'.format(len(matches)))
+    if len(matches) > 0:
+        for hashVal, start, end in matches:
+            span = doc[start:end]
+            print('Found -> \'{}\''.format(span.text))'''
+
+    doc = nlp(sentence)
+    dictOfMatches = {}
+    for el in depToFind:
+        dictOfMatches[el] = []
+    for token in doc:
+        if token.dep_ in depToFind:
+            tempList = [token]
+            for el in token.subtree:
+                tempList.append(el)
+            dictOfMatches[token.dep_].append(tempList)
+    return dictOfMatches
+
+
 if __name__ == '__main__':
-    sentence = 'He is the king with the rotten crown'
+    # sentence = 'I saw the man with a telescope'
     # paths = rootToTokenPath(sentence)  # Tested
-    # subtrees = subtreeOfDependents(sentence)  #Tested
-    # print(isSubtree(['crown', 'the', 'rotten'], sentence))  # Tested
+    # subtrees = subtreeOfDependents(sentence)  # Tested
+    # print(isSubtree(['with', 'a', 'telescope'], sentence))  # Tested
     # headOfSpan(sentence.split(' '))  # Tested
+    # print(objectsExtractor(sentence)) # Tested
