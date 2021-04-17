@@ -42,6 +42,7 @@ def subtreeOfDependents(sentence, output=True):
                     print('\t -> {}: {}'.format(els.text, els.dep_))
         if output:
             print('End subtree\n')
+        subtreeEls.insert(0, token)
         subtrees[token.text] = subtreeEls
     return subtrees
 
@@ -62,9 +63,10 @@ def isSubtree(listOfTokens, refSentence):
 
     if listOfTokens[0].text in list(subtrees.keys()):
         index = 1  # Next token after subtree root
-        for el in subtrees[listOfTokens[0].text]:
+        print(subtrees[listOfTokens[0].text])
+        for el in subtrees[listOfTokens[0].text][1:]:
             if el.text != listOfTokens[index].text:
-                print('subtree does not fit: {} != {}'
+                print('subtree does not fit: \'{}\' != \'{}\''
                       .format(el, listOfTokens[index]))
                 return False  # Subtree differs by input one
             index += 1
@@ -100,4 +102,4 @@ if __name__ == '__main__':
     # paths = rootToTokenPath(sentence)  # Tested
     # subtrees = subtreeOfDependents(sentence)  #Tested
     # print(isSubtree(['crown', 'the', 'rotten'], sentence))  # Tested
-    headOfSpan(sentence.split(' '))
+    # headOfSpan(sentence.split(' '))  # Tested
