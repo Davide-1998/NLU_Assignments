@@ -1,5 +1,4 @@
 import spacy
-from spacy.matcher import Matcher
 
 
 def rootToTokenPath(sentence):
@@ -49,7 +48,7 @@ def subtreeOfDependents(sentence, output=True):
 
 
 def isSubtree(listOfTokens, refSentence):
-    # Suppose to have an ordered list of token: root -> dep 1 -> dep 2 -> ...
+    # Supposed having an ordered list of token: root -> dep 1 -> dep 2 -> ...
 
     subtrees = subtreeOfDependents(refSentence, False)
 
@@ -98,7 +97,7 @@ def headOfSpan(listOfTokens):
 
 
 def objectsExtractor(sentence):
-    depToFind = ['nsubj', 'dobj', 'iobj']
+    depToFind = ['nsubj', 'dobj', 'dative']
 
     nlp = spacy.load('en_core_web_sm')
 
