@@ -42,8 +42,8 @@ def subtreeOfDependents(sentence, output=True):
                     print('\t -> {}: {}'.format(els.text, els.dep_))
         if output:
             print('End subtree\n')
-        subtreeEls.insert(0, token)
-        subtrees[token.text] = subtreeEls
+        # subtreeEls.insert(0, token)
+        subtrees[token] = subtreeEls
     return subtrees
 
 
@@ -52,27 +52,36 @@ def isSubtree(listOfTokens, refSentence):
 
     subtrees = subtreeOfDependents(refSentence, False)
 
-    if isinstance(listOfTokens[0], str):
-        tempSentence = listOfTokens[0]
-        if len(listOfTokens) > 1:
-            for el in listOfTokens[1:]:
-                tempSentence += ' {}'.format(el)
-        nlp = spacy.load('en_core_web_sm')
-        tempTokens = nlp(tempSentence)
-        listOfTokens = tempTokens
+    if not isinstance(listOfTokens[0], str):
+        tempList = []
+        for el in listOfTokens:
+            tempList.append(el.text)
+        listOfTokens = tempList
 
-    if listOfTokens[0].text in list(subtrees.keys()):
-        index = 1  # Next token after subtree root
-        for el in subtrees[listOfTokens[0].text][1:]:
-            if el.text != listOfTokens[index].text:
-                print('subtree does not fit: \'{}\' != \'{}\''
-                      .format(el, listOfTokens[index]))
-                return False  # Subtree differs by input one
-            index += 1
-        return True
-    else:
-        print('No subtree starting with \'{}\''.format(listOfTokens[0].text))
-        return False  # No subtree with first element as root
+    # ListOfTokens now is a list of string tokens
+    caselessList = []
+    for el in listOfTokens:
+        caselessList.append(el.casefold())
+    listOfTokens = caselessList
+
+    match = []
+    for key in subtrees:
+        if listOfTokens[0] == key.text:
+            match.append(key)
+
+    matchLists = []
+    for key in match:
+        stringList = []
+        for val in subtrees[key]:
+            stringList.append(val.text.casefold())
+        stringList.insert(0, key.text.casefold())
+        matchLists.append(stringList)
+
+    existSubtree = False
+    for _list in matchLists:
+        if _list == listOfTokens:
+            return True
+    return existSubtree
 
 
 def headOfSpan(listOfTokens):
@@ -119,6 +128,6 @@ if __name__ == '__main__':
     print(sentence)
     # paths = rootToTokenPath(sentence)  # Tested
     # subtrees = subtreeOfDependents(sentence)  # Tested
-    # print(isSubtree(['with', 'a', 'telescope'], sentence))  # Tested
+    # print(isSubtree(['With', 'A', 'Telescope'], sentence))  # Tested
     # headOfSpan(sentence.split(' '))  # Tested
     # print(objectsExtractor('I saw the man'))  # Tested
