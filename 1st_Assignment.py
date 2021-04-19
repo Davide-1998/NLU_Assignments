@@ -42,7 +42,6 @@ def subtreeOfDependents(sentence, output=True):
                     print('\t -> {}: {}'.format(els.text, els.dep_))
         if output:
             print('End subtree\n')
-        # subtreeEls.insert(0, token)
         subtrees[token] = subtreeEls
     return subtrees
 
@@ -64,13 +63,13 @@ def isSubtree(listOfTokens, refSentence):
         caselessList.append(el.casefold())
     listOfTokens = caselessList
 
-    match = []
+    key_match = []
     for key in subtrees:
         if listOfTokens[0] == key.text:
-            match.append(key)
+            key_match.append(key)
 
     matchLists = []
-    for key in match:
+    for key in key_match:
         stringList = []
         for val in subtrees[key]:
             stringList.append(val.text.casefold())
@@ -81,6 +80,7 @@ def isSubtree(listOfTokens, refSentence):
     for _list in matchLists:
         if _list == listOfTokens:
             return True
+
     return existSubtree
 
 
