@@ -55,31 +55,24 @@ def evaluateSpacy(conll_train, conll_test, overwriteDoc=False):
 
     nlp = spacy.load('en_core_web_sm')
 
-    test = 'AL-AIN , United Arab Emirates 1996-12-06'  # loadConll(conll_test)
-    # test_doc = list(nlp.pipe(test))  # test['text']))
-    test_doc = nlp(test)
+    test = loadConll(conll_test)
+    test_doc = list(nlp.pipe(test['text']))
 
-    for token in test_doc:
-        print([token.text, token.ent_iob_, token.ent_type_, token.whitespace_])
+    for doc in test_doc:
+        # Retokenization to merge '-' elements (ex dates)
+        with doc.retokenize() as retokenizer:
+            index = 0
+            startMerging = -1
+            for token in doc:
+                if token.ent_iob_ == 'B' and token.whitespace_ == '':
+                    startMerging = index
+                if (token.whitespace_ == ' ' and token.ent_iob_ == 'I'
+                   and startMerging != -1) or \
+                   (startMerging != -1 and index == len(doc)-1):
 
-    # Retokenization to merge '-' elements (ex dates)
-    with test_doc.retokenize() as retokenizer:
-        index = 0
-        startMerging = -1
-        for token in test_doc:
-            if token.ent_iob_ == 'B' and token.whitespace_ == '':
-                startMerging = index
-            if (token.whitespace_ == ' ' and token.ent_iob_ == 'I'
-               and startMerging != -1) or \
-               (startMerging != -1 and index == len(test_doc)-1):
-
-                retokenizer.merge(test_doc[startMerging:index+1])
-                startMerging = -1
-            index += 1
-
-    print('\nAfter ritokenization\n')
-    for token in test_doc:
-        print([token.text, token.ent_iob_, token.ent_type_, token.whitespace_])
+                    retokenizer.merge(doc[startMerging:index+1])
+                    startMerging = -1
+                index += 1
 
     '''NE_dict_spacy = {}  # Dictionary to store spacy processed name entities
     for doc in test_doc:
