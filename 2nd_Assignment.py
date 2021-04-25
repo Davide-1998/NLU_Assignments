@@ -1,5 +1,4 @@
 import spacy
-from spacy.training import Example
 import os
 import conll
 
@@ -39,25 +38,19 @@ def loadConll(conllFile):
     return sentence
 
 
-def spacyNE_to_conllNE(NE_tag):
-    if '-' in NE_tag:
-        NE_tag = NE_tag.split('-')[1]
-
-    conversion = {'PER': 'PERSON',
-                  'LOC': 'GPE',
-                  'O': 'DATE',
-                  'MISC': 'PRODUCT'}
-    return conversion.get(NE_tag, NE_tag)
-
-
-def evaluateSpacy(conll_train, conll_test, overwriteDoc=False):
+def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
 
     nlp = spacy.load('en_core_web_sm')
 
     test = loadConll(conll_test)
-    test_doc = list(nlp.pipe(test['text']))
 
-    # Retokenization to merge '-' elements (ex dates)
+    if max_sent is not None and isinstance(max_sent, int):
+        test_doc = list(nlp.pipe(test['text'][:max_sent]))
+    else:
+        test_doc = list(nlp.pipe(test['text']))
+    print('Elements in doc format: {}'.format(len(test_doc)))
+
+    # Retokenization to merge '-' elements (ex: dates, obj-obj)
     for doc in test_doc:
         with doc.retokenize() as retokenizer:
             index = 0
@@ -94,9 +87,6 @@ def evaluateSpacy(conll_train, conll_test, overwriteDoc=False):
             else:
                 NE_dict_spacy[key] += 1
 
-    for key in NE_dict_spacy:
-        print('NE: \'{}\' -> counts: {}'.format(key, NE_dict_spacy[key]))
-
     NE_dict_conll = {}  # Dictionary to store conll NE divided by B and I
     for tag_list in test['NE_tag']:
         for tag in tag_list.split():
@@ -104,11 +94,6 @@ def evaluateSpacy(conll_train, conll_test, overwriteDoc=False):
                 NE_dict_conll[tag] = 1
             else:
                 NE_dict_conll[tag] += 1
-
-    print('\n')
-
-    for key in NE_dict_conll:
-        print('NE Conll: \'{}\' -> counts: {}'.format(key, NE_dict_conll[key]))
 
     grouped_NE_dict_conll = {}  # Dictionary to store conll NE not divided
     for key in NE_dict_conll:
@@ -119,12 +104,6 @@ def evaluateSpacy(conll_train, conll_test, overwriteDoc=False):
             grouped_NE_dict_conll[split_key] = NE_dict_conll[key]
         else:
             grouped_NE_dict_conll[split_key] += NE_dict_conll[key]
-
-    print('\n')
-
-    for key in grouped_NE_dict_conll:
-        print('NE Conll: \'{}\' -> counts: {}'
-              .format(key, grouped_NE_dict_conll[key]))
 
     # Compute correct predictions
     converter = {'PERSON': 'PER',
@@ -151,37 +130,60 @@ def evaluateSpacy(conll_train, conll_test, overwriteDoc=False):
             token_idx += 1
         doc_idx += 1
 
-    print('\nCorrect prediction dictionary:\n')
-    for key in correct_Prediction:
-        print('\'{}\' -> counts: {}'
-              .format(key, correct_Prediction[key]))
-    print('\n')
-
-    '''# B & I accuracies
-    for key in correct_Prediction:
-        print('{} accuracy= {:0.4f}'
-              .format(key, correct_Prediction[key]/NE_dict_conll[key]))'''
-
-    # Grouped NE accuracies
+    # Grouped NE Correct predictions
     grouped_correct_Prediction = {}
     for key in correct_Prediction:
         if len(key) > 1:
             splitted_key = key.split('-')[1]
-            if splitted_key not in correct_Prediction:
-                grouped_correct_Prediction[splitted_key] \
-                    = correct_Prediction[key]
-            else:
-                grouped_correct_Prediction[splitted_key] \
-                    += correct_Prediction[key]
+        else:
+            splitted_key = key
+
+        if splitted_key not in grouped_correct_Prediction:
+            grouped_correct_Prediction[splitted_key] \
+                = correct_Prediction[key]
+        else:
+            grouped_correct_Prediction[splitted_key] \
+                += correct_Prediction[key]
+
+    if print_dicts:
+        print('\nSpacy NE counts:')
+        for key in NE_dict_spacy:
+            print('Spacy NE: \'{}\' -> counts: {}'.format(key,
+                                                          NE_dict_spacy[key]))
+
+        print('\nConll NE counts:')
+        for key in NE_dict_conll:
+            print('Conll NE: \'{}\' -> counts: {}'.format(key,
+                                                          NE_dict_conll[key]))
+
+        print('\nGrouped Conll NE counts:')
+        for key in grouped_NE_dict_conll:
+            print('Grouped conll NE: \'{}\' -> counts: {}'
+                  .format(key, grouped_NE_dict_conll[key]))
+
+        print('\nCorrect prediction dictionary:')
+        for key in correct_Prediction:
+            print('\'Correct NE: {}\' -> counts: {}'
+                  .format(key, correct_Prediction[key]))
+
+        print('\nGrouped Correct prediction dictionary:')
+        for key in grouped_correct_Prediction:
+            print('\'Grouped NE: {}\' -> counts: {}'
+                  .format(key, grouped_correct_Prediction[key]))
 
     # B & I accuracies
+    print('\nB & I accuracies:')
+    total_correct_tokens = 0
+    total_tokens = 0
     for key in correct_Prediction:
         print('{} accuracy= {:0.4f}'
               .format(key, correct_Prediction[key]/NE_dict_conll[key]))
+        total_correct_tokens += correct_Prediction[key]
+        total_tokens += NE_dict_conll[key]
+    print('total accuracy: {:0.4f}'.format(total_correct_tokens/total_tokens))
 
-    print('\n')
-
-    # Group accuracies
+    # Grouped Accuracies
+    print('\nGrouped Accuracies:')
     for key in grouped_correct_Prediction:
         print('{} accuracy= {:0.4f}'
               .format(key,
@@ -227,4 +229,4 @@ def spacyEval_nlp_evaluate():
 
 
 if __name__ == '__main__':
-    evaluateSpacy('train.txt', 'test.txt')
+    evaluateSpacy('train.txt', 'test.txt', 100, print_dicts=False)
