@@ -1,6 +1,7 @@
 import spacy
 import os
 import conll
+import pandas as pd
 
 
 def loadConll(conllFile):
@@ -193,7 +194,40 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
                       grouped_NE_dict_conll[key]))
 
     # Chunk accuracy (i.e entity accuracy)
-    print('\nChunk accuracies:')
+    sent_idx = 0
+    ref_list = []
+    hyp_list = []
+    for sent in test['text'][:max_sent]:
+        token_idx = 0
+        ref_token_list = []
+        hyp_token_list = []
+        for token in sent.split():
+            ref_token_list.append(
+                    [token,
+                     test['NE_tag'][sent_idx].split()[token_idx]])
+
+            if test_doc[sent_idx][token_idx].ent_type_ == '':
+                hyp_token_list.append(
+                    [test_doc[sent_idx][token_idx].text,
+                     test_doc[sent_idx][token_idx].ent_iob_])
+            else:
+                hyp_token_list.append(
+                    [test_doc[sent_idx][token_idx].text,
+                     test_doc[sent_idx][token_idx].ent_iob_ +
+                     '-' + converter(
+                        test_doc[sent_idx][token_idx].ent_type_)])
+
+            token_idx += 1
+        ref_list.append(ref_token_list)
+        hyp_list.append(hyp_token_list)
+        sent_idx += 1
+
+    measures = conll.evaluate(ref_list, hyp_list)
+    # Make fancy table:
+    measureShow = pd.DataFrame().from_dict(measures, orient='index')
+    print(measureShow.round(decimals=3))
+
+    '''print('\nChunk accuracies:')
     spacyEnts = []
     for doc in test_doc:
         tempSpanList = []
@@ -237,9 +271,10 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
             tags.append(ent[1].split('-')[0])
         Ilist = [tag for tag, val in enumerate(tags) if val == 'I']
         print(Ilist)
+        idx += 1
+        conllEntList.append(tempList)'''
 
-
-        '''if ent[1].split('-')[0] == 'B':
+    '''if ent[1].split('-')[0] == 'B':
                 if mergeStart == -1 or idx+1 == len(sent):
                     tempList.append([ent[0].strip(), ent[1].split('-')[1]])
                 elif mergeEnd != -1:
@@ -264,7 +299,7 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
                     tempList.append([txt.strip(),
                                      sent[mergeStart][1].split('-')[1]])'''
 
-        '''if ent[1].split('-')[0] == 'B':  # Begin of entity
+    '''if ent[1].split('-')[0] == 'B':  # Begin of entity
                 if mergeStart != -1 and mergeEnd != -1:
                     txt = ''
                     for el in sent[mergeStart:mergeEnd+1]:
@@ -288,8 +323,6 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
                         print('Start index set to %d' % mergeStart)
                     mergeEnd += 1
                     print('End index increased to %d' % mergeEnd)'''
-        idx += 1
-        conllEntList.append(tempList)
 
     # print(spacyEntList, '\n')
     # print(conllList, '\n')
@@ -438,5 +471,5 @@ def frequentNE(ref):
 
 
 if __name__ == '__main__':
-    # evaluateSpacy('train.txt', 'test.txt', 3, print_dicts=False)
-    frequentNE('Apple\'s Steve Jobs died in 2011 in Palo Alto, California.')
+    evaluateSpacy('train.txt', 'test.txt', print_dicts=False)
+    # frequentNE('Apple\'s Steve Jobs died in 2011 in Palo Alto, California.')
