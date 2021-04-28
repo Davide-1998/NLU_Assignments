@@ -2,6 +2,7 @@ import spacy
 import os
 import conll
 import pandas as pd
+from sklearn.metrics import classification_report as report
 
 
 def loadConll(conllFile):
@@ -58,7 +59,7 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
         test_doc = list(nlp.pipe(test['text'][:max_sent]))
     else:
         test_doc = list(nlp.pipe(test['text']))
-    print('Elements in doc format: {}'.format(len(test_doc)))
+    # print('Elements in doc format: {}'.format(len(test_doc)))
 
     # Retokenization to merge '-' elements (ex: dates, obj-obj)
     for doc in test_doc:
@@ -66,15 +67,6 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
             index = 0
             startMerging = -1
             for token in doc:
-                '''if token.ent_iob_ == 'B' and token.whitespace_ == '':
-                    startMerging = index
-                if (token.whitespace_ == ' ' and token.ent_iob_ == 'I'
-                   and startMerging != -1) or \
-                   (startMerging != -1 and index == len(doc)-1):
-
-                    retokenizer.merge(doc[startMerging:index+1])
-                    startMerging = -1'''
-
                 if token.whitespace_ == '' and startMerging == -1:
                     startMerging = index
                 if (token.whitespace_ == ' ' or index == len(doc)-1) \
@@ -84,26 +76,40 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
                 index += 1
 
     NE_dict_spacy = {}  # Dictionary to store spacy processed name entities
+    doc_spacy_test_list = []  # -> New
     for doc in test_doc:
+        token_list = []  # -> New
         for token in doc:
             if token.ent_type_ == '':
                 key = token.ent_iob_
             else:
                 key = token.ent_iob_ + '-' + token.ent_type_
+            doc_spacy_test_list.append(converter(key))  # -> New
             if key not in NE_dict_spacy:
                 NE_dict_spacy[key] = 1
             else:
                 NE_dict_spacy[key] += 1
+        # doc_spacy_test_list.append(token_list)  # -> New
 
     NE_dict_conll = {}  # Dictionary to store conll NE divided by B and I
+    doc_conll_test_list = []  # -> New
     for tag_list in test['NE_tag']:
+        t = []  # -> New
         for tag in tag_list.split():
+            doc_conll_test_list.append(tag)  # -> New
             if tag not in NE_dict_conll:
                 NE_dict_conll[tag] = 1
             else:
                 NE_dict_conll[tag] += 1
+        # doc_conll_test_list.append(t)  # -> New
 
-    grouped_NE_dict_conll = {}  # Dictionary to store conll NE not divided
+    # ##################################################### NEW
+    scores = report(doc_conll_test_list, doc_spacy_test_list,\
+                    output_dict= True, zero_division=0)
+    print('Accuracy on spacy prediction: {:0.4f}'.format(scores['accuracy']))
+    # ##################################################### NEW
+
+    '''grouped_NE_dict_conll = {}  # Dictionary to store conll NE not divided
     for key in NE_dict_conll:
         split_key = key
         if len(key) > 1:
@@ -191,7 +197,7 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
         print('{} accuracy= {:0.4f}'
               .format(key,
                       grouped_correct_Prediction[key] /
-                      grouped_NE_dict_conll[key]))
+                      grouped_NE_dict_conll[key]))'''
 
     # Chunk accuracy (i.e entity accuracy)
     sent_idx = 0
@@ -227,179 +233,8 @@ def evaluateSpacy(conll_train, conll_test, max_sent=None, print_dicts=False):
     measureShow = pd.DataFrame().from_dict(measures, orient='index')
     print(measureShow.round(decimals=3))
 
-    '''print('\nChunk accuracies:')
-    spacyEnts = []
-    for doc in test_doc:
-        tempSpanList = []
-        for span in doc.ents:
-            tempSpanList.append(span)
-        spacyEnts.append(tempSpanList)
-    # print(spacyEnts)
-    # for el in spacyEnts:
-    #    for span in el:
-    #        print(span.label_)
 
-    # Try conll.evaluate:
-    spacyEntList = []
-    conllEntList = []
-
-    for doc in test_doc[:max_sent]:
-        tempList = []
-        for ent in doc.ents:
-            tempList.append([ent.text, converter(ent.label_, 'MISC')])
-        spacyEntList.append(tempList)
-
-    conllList = []
-    sent_idx = 0
-    for sent in test['text'][:max_sent]:
-        token_idx = 0
-        tempList = []
-        for token in sent.split():
-            NE_tag = test['NE_tag'][sent_idx].split()[token_idx]
-            if NE_tag != 'O':
-                tempList.append([token, NE_tag])
-            token_idx += 1
-        conllList.append(tempList)
-        sent_idx += 1
-
-    for sent in conllList:
-        tempList = []
-        idx = 0
-        print(sent)
-        tags = []
-        for ent in sent:
-            tags.append(ent[1].split('-')[0])
-        Ilist = [tag for tag, val in enumerate(tags) if val == 'I']
-        print(Ilist)
-        idx += 1
-        conllEntList.append(tempList)'''
-
-    '''if ent[1].split('-')[0] == 'B':
-                if mergeStart == -1 or idx+1 == len(sent):
-                    tempList.append([ent[0].strip(), ent[1].split('-')[1]])
-                elif mergeEnd != -1:
-                    txt = ''
-                    for el in sent[mergeStart:mergeEnd+1]:
-                        txt += el[0] + ' '
-                    tempList.append([txt.strip(),
-                                     sent[mergeStart][1].split('-')[1]])
-                    mergeEnd = -1
-                    mergeStart = -1
-                mergeStart = idx
-
-            if ent[1].split('-')[0] == 'I':
-                if mergeEnd == -1:
-                    mergeEnd = idx
-                else:
-                    mergeEnd += 1
-                if idx + 1 == len(sent)-1:
-                    txt = ''
-                    for el in sent[mergeStart:mergeEnd+2]:
-                        txt += el[0] + ' '
-                    tempList.append([txt.strip(),
-                                     sent[mergeStart][1].split('-')[1]])'''
-
-    '''if ent[1].split('-')[0] == 'B':  # Begin of entity
-                if mergeStart != -1 and mergeEnd != -1:
-                    txt = ''
-                    for el in sent[mergeStart:mergeEnd+1]:
-                        txt += (el[0] + ' ')  # Add text of splices
-                        print('New token: %s' % txt)
-                    tempList.append([txt.stripe(),
-                                     sent[mergeStart][1].split('-')[1]])
-                    mergeStart = -1
-                    mergeEnd = -1
-                else:
-                    mergeStart = idx
-                    print('start index set to %d' % mergeStart)
-
-            if ent[1].split('-')[0] == 'I':
-                if mergeEnd == -1:
-                    mergeEnd = idx
-                    print('End index set to %d' % mergeEnd)
-                else:
-                    if mergeStart == -1:
-                        mergeStart = idx - 1
-                        print('Start index set to %d' % mergeStart)
-                    mergeEnd += 1
-                    print('End index increased to %d' % mergeEnd)'''
-
-    # print(spacyEntList, '\n')
-    # print(conllList, '\n')
-    # print('\n', conllEntList, '\n')
-
-    '''for sent in test_doc[:max_sent]:
-        tempList = []
-        for token in sent:
-            if token.ent_iob_ == 'O':
-                tempList.append([token.text, token.ent_iob_])
-            else:
-                en = token.ent_iob_ + '-' + \
-                     converter.get(token.ent_type_, 'MISC')
-                tempList.append([token.text, en])
-        spacyEntList.append(tempList)
-
-    sent_idx = 0
-    for sent in test['text'][:max_sent]:
-        token_idx = 0
-        tempList = []
-        for token in sent.split():
-            tempList.append([token,
-                             test['NE_tag'][sent_idx].split()[token_idx]])
-            token_idx += 1
-        sent_idx += 1
-        conllEntList.append(tempList)
-
-    print(spacyEntList, '\n\n', conllEntList)'''
-
-    '''conll_chunks = list(conll.get_chunks(os.getcwd() +
-                                         '/data/conll2003/test.txt'))
-
-    count = 0
-    for el in spacyEntList:
-        if el in conll_chunks:
-            count += 1
-    print(count)'''
-
-
-def spacyEval_nlp_evaluate():
-    '''pathToConllFile = os.getcwd() + os.sep + 'data' + os.sep \
-                      + 'conll2003' + os.sep +'test.txt'
-    corpus = conll.read_corpus_conll(pathToConllFile)
-    tempCorpus = []
-    for el in corpus:
-        tempList = []
-        for token in el:
-            token = token[0].split()
-            tempList.append(token)
-        tempCorpus.append(tempList)
-    corpus = tempCorpus
-    conEval = conll.conlleval(corpus)
-    for el in conEval:
-        print(el, conEval[el])'''
-
-    '''idx = 0
-    listExamples = []
-    print('Building list of Spacy Examples...')
-    for txt in test_doc:  # Iterate on a list of doc items
-        nlp_example = Example.from_dict(
-                                     txt,
-                                     {'words': txt.text.split(),
-                                      'pos': test['POS_tag'][idx].split(),
-                                      'tags': test['SynChunkTag'][idx].split()}
-                                        )
-        listExamples.append(nlp_example)
-        idx += 1
-
-    print('Elements as examples: {}'
-          .format(len(listExamples)))
-
-    score = nlp.evaluate(listExamples)
-    for key in score:
-        print('{} : {}'.format(key, score[key]))'''
-
-
-def frequentNE(ref):
+def groups_NE(ref):
     if isinstance(ref, str):  # Checks whether input is a sentence or Doc
         nlp = spacy.load('en_core_web_sm')
         doc = nlp(ref)
@@ -453,23 +288,181 @@ def frequentNE(ref):
                             stop = True
                     span_idx += 1
 
-    print(unified_en_span_seq)
+    return unified_en_span_seq
 
+
+def frequencies_comp(listOfSentences, num_print=5, print_all=False):
     frequencies = {}
+    for sent in listOfSentences:
+        for group in sent:
+            tempName = ''
+            for el in group:
+                tempName += '{} '.format(el)
+            tempName = tempName.strip()
 
-    for group in unified_en_span_seq:
-        tempName = ''
-        for el in group:
-            tempName += '{} '.format(el)
-        tempName = tempName.strip()
+            if tempName != '':
+                if tempName not in frequencies:
+                    frequencies[tempName] = 1
+                else:
+                    frequencies[tempName] += 1
 
-        if tempName not in frequencies:
-            frequencies[tempName] = 1
-        else:
-            frequencies[tempName] += 1
-    print(frequencies)
+    # sorting in descending order
+    sorted_keys = sorted(frequencies, key=frequencies.__getitem__, \
+                         reverse=True)
+    sorted_frequencies = {}
+    for keys in sorted_keys:
+        sorted_frequencies[keys] = frequencies.get(keys)
+
+    if not print_all:
+        i = 0
+        while i < num_print:
+            print('\'{}\': {}'.format(sorted_keys[i], \
+                                      sorted_frequencies[sorted_keys[i]]))
+            i += 1
+    else:
+        for key in sorted_frequencies:
+            print('\'{}\': {}'.format(key, sorted_frequencies[key]))
+
+    return sorted_frequencies
+
+
+def computeConllFreqs(conllFile):
+    conllFile = loadConll('test.txt')['text']
+    nlp = spacy.load('en_core_web_sm')
+    sents = list(nlp.pipe(conllFile))
+    sent = []
+    for doc in sents:
+        sent.append(groups_NE(doc))
+    frequencies_comp(sent)
+
+
+def postProcess(text):
+    # print(text)
+
+    if isinstance(text, str):
+        nlp = spacy.load('en_core_web_sm')
+        doc = nlp(text)
+    else:
+        doc = text
+
+    token_list = []
+    for token in doc:  # Create list of tokens -> indirectly index of doc
+        token_list.append(token.text)
+
+    print('Starting ents:')
+    for el in doc.ents:
+        print([el])
+
+    for token in doc:
+        # print([token.text, token.ent_iob_+'-'+token.ent_type_, token.dep_])
+        ent_type = token.ent_iob_
+        if ent_type != 'O':
+            ent_type += '-' + token.ent_type_
+
+        if token.dep_ == 'compound':
+            # print(token.text)
+            head = token.head  # Other token in compound relation
+            lists_of_entities = doc.ents
+
+            in_span = False
+            for span in lists_of_entities:
+                if head in span:
+                    found_span = span
+                    if token in found_span:
+                        print('Both elements of compound in span')
+                        in_span = True
+                    else:
+                        token_idx = token_list.index(token.text)
+                        head_idx = token_list.index(head.text)
+                        start_span_idx = token_list.index(span[0])
+                        with doc.retokenize() as retokenizer:
+                            if token_idx != head_idx:
+                                if token_idx > head_idx:
+                                    retokenizer.merge(
+                                            doc[start_span_idx:token_idx+1])
+                                else:
+                                    retokenizer.merge(
+                                            doc[start_span_idx:head_idx+1])
+                        in_span = True
+
+            if not in_span:  # No span contains them
+                with doc.retokenize() as retokenizer:
+                    token_idx = token_list.index(token.text)
+                    head_idx = token_list.index(head.text)
+                    if token_idx != head.idx:
+                        if token_idx < head_idx:
+                            print(token_idx, head_idx)
+                            retokenizer.merge(doc[token_idx:head_idx+1])
+                        else:
+                            retokenizer.merge(doc[head_idx:token_idx+1])
+
+    print('\nProcessed ents')
+    for el in doc.ents:
+        print([el])
+
+    return doc
+
+
+    '''for span in lists_of_entities:
+                if head in span:
+                    if token in span:
+                        print('Both element of compound in span')
+                        continue
+                    else:
+                        index_compound = token_list.index(token.text)
+                        head_index = token_list.index(head.text)
+                        start_index = token_list.index(span[0].text)
+                        if head_index < index_compound:
+                            doc.set_ents([spacy.tokens.Span(doc,
+                                                            start_index,
+                                                            index_compound+1,
+                                                            head.ent_type_)])
+                        else:
+                            doc.set_ents([spacy.tokens.Span(doc,
+                                                            start_index,
+                                                            head_index+1,
+                                                            head.ent_type_)])
+                else:
+                    head_index = token_list.index(head.text)
+                    index_compound = token_list.index(token.text)
+                    if head_index < index_compound:
+                        doc.set_ents([spacy.tokens.Span(doc,
+                                                        head_index,
+                                                        index_compound+1,
+                                                        ent_type)])
+                    else:
+                        doc.set_ents([spacy.tokens.Span(doc,
+                                                        index_compound,
+                                                        head_index+1,
+                                                        ent_type)])
+                list_of_doc.append(doc)
+    new_doc = spacy.tokens.Doc.from_docs(list_of_doc)'''
+
+
+    '''token_list = []
+    for span in doc.ents:
+        print([span])
+        for token in span:
+            if token.dep_ == 'compound':
+                child = token.children
+                for t in child:
+                    print('Child: ', t.text, t.dep_, t.ent_type_)
+            if token.ent_iob_ != 'O':
+                token_list.append((token.text, token.ent_iob_ + '-' + \
+                                   token.ent_type_))
+            else:
+                token_list.append((token.text, token.ent_iob_))
+    print('\n', token_list)'''
 
 
 if __name__ == '__main__':
-    evaluateSpacy('train.txt', 'test.txt', print_dicts=False)
-    # frequentNE('Apple\'s Steve Jobs died in 2011 in Palo Alto, California.')
+    # evaluateSpacy('train.txt', 'test.txt', print_dicts=False)
+    # frequencies in conll:
+    # computeConllFreqs('test.txt')
+
+    # postProcess('Apple\'s Steve Jobs died in 2011 in Palo Alto, California.')
+
+    sentence = 'Soccer - Japan get lucky win , china in surprise defeat'
+    nlp = spacy.load('en_core_web_sm')
+    doc = nlp(sentence)
+    postProcess(doc)
