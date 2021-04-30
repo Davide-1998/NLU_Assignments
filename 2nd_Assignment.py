@@ -232,6 +232,17 @@ def computeConllFreqs(conllFile):
     frequencies_comp(sent)
 
 
+def find_token_index(token, listOfTokens):
+    before = 0  # listOfTokens[0].i
+    after = 0  # listOfTokens[0].i
+    for el in listOfTokens[1:]:
+        if token.i < el.i:
+            before = el.i
+        else:
+            after = el.i
+    return[before, after]
+
+
 def postProcess(text):
     print('input text: ', text)
     if isinstance(text, str):
@@ -240,16 +251,19 @@ def postProcess(text):
     else:
         doc = text
 
-    print('\nStarting entities:\n')
+    print('\nStarting entities:')
     for el in doc.ents:
         print([el])
 
-    compound_tokens = []
     comp_dict = {}
 
     for token in doc:
+        print([token.text, token.ent_iob_, token.ent_type_])
+
+    print('\nElements in compound relation:')
+    for token in doc:
         if token.dep_ == 'compound':
-            compound_tokens.append([token, token.head])
+            print([token.text])
             if token.head not in comp_dict:
                 comp_dict[token.head] = [token]
             else:
@@ -258,6 +272,7 @@ def postProcess(text):
     for key in comp_dict:
         if key.i > comp_dict[key][-1].i:
             comp_dict[key].append(key)
+            find_token_index(key, comp_dict[key])
 
     total_els = 0
     for key in comp_dict:
@@ -301,8 +316,9 @@ def postProcess(text):
         new_ents.append(list(el))
 
     for el in insert_ref:
-        new_ents.insert(el[0], composed_ents[el[1]])
-        composed_ents.remove(composed_ents[el[1]])
+        if el[0] < len(new_ents) and el[1] < len(composed_ents):
+            new_ents.insert(el[0], composed_ents[el[1]])
+            composed_ents.remove(composed_ents[el[1]])
 
     if composed_ents != []:
         for el in composed_ents:
@@ -320,45 +336,9 @@ def postProcess(text):
         iob_ents.append(span)
 
     doc.ents = iob_ents
-    print('New entities:\n')
+    print('\nNew entities:')
     for el in list(doc.ents):
         print([el])
-
-    '''for token in doc:
-        if token.dep_ == 'compound':
-            head = token.head  # Other token in compound relation
-            lists_of_entities = doc.ents
-
-            in_span = False
-            for span in lists_of_entities:
-                if head in span:
-                    found_span = span
-                    if token in found_span:
-                        print('Both elements of compound in span')
-                        in_span = True
-                    else:
-                        with doc.retokenize() as retokenizer:
-                            if token.i != head.i:
-                                if token.i > head.i:
-                                    retokenizer.merge(
-                                        doc[span[0].i:token.i+1])
-                                else:
-                                    retokenizer.merge(
-                                        doc[span[0].i:head.i+1])
-                        in_span = True
-
-            if not in_span:  # No span contains them
-                with doc.retokenize() as retokenizer:
-                    if token.i != head.i:
-                        if token.i < head.i:
-                            print(token.i, head.i)
-                            retokenizer.merge(doc[token.i:head.i+1])
-                        else:
-                            retokenizer.merge(doc[head.i:token.i+1])'''
-
-    '''print('\nProcessed ents')
-    for el in doc.ents:
-        print([el])'''
 
     return doc
 
