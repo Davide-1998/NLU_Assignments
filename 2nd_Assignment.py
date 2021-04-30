@@ -335,14 +335,11 @@ def postProcess(text):
 
 
 if __name__ == '__main__':
-    # evaluateSpacy('test.txt', print_dicts=False)
-    # frequencies in conll:
+    # Spacy's evaluation
+    evaluateSpacy('test.txt', print_dicts=False)
+
+    # Frequencies in conll:
     computeConllFreqs('test.txt')
 
-    # postProcess('Apple\'s Steve Jobs died in 2011 in Palo Alto, California.')
-    #postProcess('He said a proposal last month by EU Farm Commissioner Franz'+
-    #            ' Fischler to ban sheep brains')
-    '''sentence = 'Soccer - Japan get lucky win , china in surprise defeat'
-    nlp = spacy.load('en_core_web_sm')
-    doc = nlp(sentence)
-    postProcess(doc)'''
+    postProcess('He said a proposal last month by EU Farm Commissioner Franz'+
+                ' Fischler to ban sheep brains')
