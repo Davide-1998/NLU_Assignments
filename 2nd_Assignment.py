@@ -209,12 +209,15 @@ def frequencies_comp(listOfSentences, num_print=5, print_all=False):
 
     if not print_all:
         i = 0
-        while i < num_print:
-            print('\'{}\': {}'.format(sorted_keys[i],
-                                      sorted_frequencies[sorted_keys[i]]))
-            i += 1
+        for key in sorted_frequencies:
+            if len(key.split()) > 1 and i < num_print:
+                print('\'{}\': {}'.format(key,
+                                          sorted_frequencies[key]))
+                i += 1
+
     else:
         for key in sorted_frequencies:
+            print(key.split(), len(key.split()))
             print('\'{}\': {}'.format(key, sorted_frequencies[key]))
 
     print('Keys in dictionary', len(sorted_frequencies))
@@ -222,14 +225,14 @@ def frequencies_comp(listOfSentences, num_print=5, print_all=False):
     return sorted_frequencies
 
 
-def computeConllFreqs(conllFile):
+def computeConllFreqs(conllFile, max_num=5, print_all=False):
     conllFile = loadConll('test.txt')['text']
     nlp = spacy.load('en_core_web_sm')
     sents = list(nlp.pipe(conllFile))
     sent = []
     for doc in sents:
         sent.append(groups_NE(doc))
-    frequencies_comp(sent)
+    frequencies_comp(sent, max_num, print_all)
 
 
 def postProcess(text):
@@ -334,11 +337,11 @@ def postProcess(text):
 if __name__ == '__main__':
     # evaluateSpacy('test.txt', print_dicts=False)
     # frequencies in conll:
-    # computeConllFreqs('test.txt')
+    computeConllFreqs('test.txt')
 
     # postProcess('Apple\'s Steve Jobs died in 2011 in Palo Alto, California.')
-    postProcess('He said a proposal last month by EU Farm Commissioner Franz'+
-                ' Fischler to ban sheep brains')
+    #postProcess('He said a proposal last month by EU Farm Commissioner Franz'+
+    #            ' Fischler to ban sheep brains')
     '''sentence = 'Soccer - Japan get lucky win , china in surprise defeat'
     nlp = spacy.load('en_core_web_sm')
     doc = nlp(sentence)
