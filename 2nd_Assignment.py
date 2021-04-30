@@ -232,17 +232,6 @@ def computeConllFreqs(conllFile):
     frequencies_comp(sent)
 
 
-def find_token_index(token, listOfTokens):
-    before = 0  # listOfTokens[0].i
-    after = 0  # listOfTokens[0].i
-    for el in listOfTokens[1:]:
-        if token.i < el.i:
-            before = el.i
-        else:
-            after = el.i
-    return[before, after]
-
-
 def postProcess(text):
     print('input text: ', text)
     if isinstance(text, str):
@@ -272,7 +261,6 @@ def postProcess(text):
     for key in comp_dict:
         if key.i > comp_dict[key][-1].i:
             comp_dict[key].append(key)
-            find_token_index(key, comp_dict[key])
 
     total_els = 0
     for key in comp_dict:
@@ -320,12 +308,12 @@ def postProcess(text):
             new_ents.insert(el[0], composed_ents[el[1]])
             composed_ents.remove(composed_ents[el[1]])
 
-    if composed_ents != []:
+    if composed_ents != []:  # Append the grouped entities that are left
         for el in composed_ents:
             new_ents.append(el)
 
-    iob_ents = []
-    for el in new_ents:
+    span_ents = []
+    for el in new_ents:  # Converts grouped entities into  span
         start_idx = el[0].i
         end_idx = el[-1].i
         if doc[start_idx].ent_iob_ != '':
@@ -333,9 +321,9 @@ def postProcess(text):
         else:
             iob = doc[start_idx].ent_iob_
         span = spacy.tokens.Span(doc, start_idx, end_idx+1, label=iob)
-        iob_ents.append(span)
+        span_ents.append(span)
 
-    doc.ents = iob_ents
+    doc.ents = span_ents  # Overwrites previous doc entities
     print('\nNew entities:')
     for el in list(doc.ents):
         print([el])
