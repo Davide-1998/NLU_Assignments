@@ -233,17 +233,98 @@ def computeConllFreqs(conllFile):
 
 
 def postProcess(text):
+    print('input text: ', text)
     if isinstance(text, str):
         nlp = spacy.load('en_core_web_sm')
         doc = nlp(text)
     else:
         doc = text
 
-    print('Starting ents:')
+    print('\nStarting entities:\n')
     for el in doc.ents:
         print([el])
 
+    compound_tokens = []
+    comp_dict = {}
+
     for token in doc:
+        if token.dep_ == 'compound':
+            compound_tokens.append([token, token.head])
+            if token.head not in comp_dict:
+                comp_dict[token.head] = [token]
+            else:
+                comp_dict[token.head].insert(token.i, token)
+
+    for key in comp_dict:
+        if key.i > comp_dict[key][-1].i:
+            comp_dict[key].append(key)
+
+    total_els = 0
+    for key in comp_dict:
+        total_els += len(comp_dict[key])
+
+    composed_ents = []
+    temp_ent = []
+    index = 0
+    for key in comp_dict:
+        for token in comp_dict[key]:
+            if len(temp_ent) == 0:
+                temp_ent.append(comp_dict[key][0])
+            elif token != temp_ent[-1]:
+                if token not in temp_ent and token.i - temp_ent[-1].i == 1:
+                    temp_ent.append(token)
+                else:
+                    composed_ents.append(temp_ent)
+                    temp_ent = [token]
+            if index == total_els-1:  # Definetly last
+                composed_ents.append(temp_ent)
+            index += 1
+
+    prev_ents = list(doc.ents)
+    copy_ents = list(doc.ents)
+    insert_ref = []
+    for ent in prev_ents:
+        in_ents = False
+        for token in ent:
+            for el in composed_ents:
+                if token in el:
+                    in_ents = True
+                    insert_idx = prev_ents.index(ent)
+                    ref_idx = composed_ents.index(el)
+                    if [insert_idx, ref_idx] not in insert_ref:
+                        insert_ref.append([insert_idx, ref_idx])
+        if in_ents:
+            copy_ents.remove(ent)
+
+    new_ents = []
+    for el in copy_ents:
+        new_ents.append(list(el))
+
+    for el in insert_ref:
+        new_ents.insert(el[0], composed_ents[el[1]])
+        composed_ents.remove(composed_ents[el[1]])
+
+    if composed_ents != []:
+        for el in composed_ents:
+            new_ents.append(el)
+
+    iob_ents = []
+    for el in new_ents:
+        start_idx = el[0].i
+        end_idx = el[-1].i
+        if doc[start_idx].ent_iob_ != '':
+            iob = doc[start_idx].ent_iob_ + '-' + doc[start_idx].ent_type_
+        else:
+            iob = doc[start_idx].ent_iob_
+        span = spacy.tokens.Span(doc, start_idx, end_idx+1, label=iob)
+        iob_ents.append(span)
+
+    doc.ents = iob_ents
+    print('New entities:\n')
+    for el in list(doc.ents):
+        print([el])
+
+    '''for token in doc:
         if token.dep_ == 'compound':
             head = token.head  # Other token in compound relation
             lists_of_entities = doc.ents
@@ -273,11 +354,11 @@ def postProcess(text):
                             print(token.i, head.i)
                             retokenizer.merge(doc[token.i:head.i+1])
                         else:
-                            retokenizer.merge(doc[head.i:token.i+1])
+                            retokenizer.merge(doc[head.i:token.i+1])'''
 
-    print('\nProcessed ents')
+    '''print('\nProcessed ents')
     for el in doc.ents:
-        print([el])
+        print([el])'''
 
     return doc
 
@@ -288,7 +369,8 @@ if __name__ == '__main__':
     # computeConllFreqs('test.txt')
 
     # postProcess('Apple\'s Steve Jobs died in 2011 in Palo Alto, California.')
-
+    postProcess('He said a proposal last month by EU Farm Commissioner Franz'+
+                ' Fischler to ban sheep brains')
     '''sentence = 'Soccer - Japan get lucky win , china in surprise defeat'
     nlp = spacy.load('en_core_web_sm')
     doc = nlp(sentence)
